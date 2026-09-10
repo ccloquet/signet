@@ -122,6 +122,41 @@
   }
   .row2 .field{ flex:1; }
 
+  .field textarea{
+    width:100%;
+    font-size:0.95rem;
+    padding:10px;
+    border:1px solid var(--rule);
+    background:transparent;
+    color:var(--ink);
+    font-family:'IBM Plex Mono',monospace;
+    resize:vertical;
+    min-height:74px;
+  }
+  .field textarea:focus{
+    outline:none;
+    border-color:var(--ink);
+  }
+  .divider-or{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin:8px 0 24px;
+    color:var(--ink-soft);
+    font-size:0.8rem;
+  }
+  .divider-or::before, .divider-or::after{
+    content:'';
+    flex:1;
+    height:1px;
+    background:var(--rule);
+  }
+  .parse-note{
+    font-size:0.84rem;
+    color:var(--moss);
+    margin-top:6px;
+  }
+
   button.action{
     font-family:'Lora',serif;
     font-size:0.95rem;
@@ -156,6 +191,7 @@
     min-height:20px;
   }
   .result.hidden{ display:none; }
+  .hidden{ display:none; }
 
   .code-display{
     display:flex;
@@ -293,6 +329,14 @@
   <!-- VERIFY -->
   <section class="panel" id="panel-verify">
     <p class="lede">Enter the code found on a document, along with its date and reference. Signet will check it against every registered function and tell you who it belongs to.</p>
+
+    <div class="field">
+      <label for="verify-paste">Paste the signed block</label>
+      <textarea id="verify-paste" placeholder="4K9QRZ&#10;2026-09-10 · contract-v3.pdf&#10;J.DUPONT — SITE MANAGER"></textarea>
+      <div class="parse-note hidden" id="verify-parse-note"></div>
+    </div>
+
+    <div class="divider-or">or fill in each field</div>
 
     <div class="field">
       <label for="verify-code">Code</label>
@@ -504,6 +548,47 @@ document.getElementById('btn-sign').addEventListener('click', async ()=>{
   }
 });
 
+// ---- Verify: parse a pasted 3-line block ----
+function parseSignedBlock(text){
+  const lines = text.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+  if(lines.length < 2) return null;
+
+  const code = lines[0].toUpperCase();
+
+  const secondLine = lines[1];
+  const sepIdx = secondLine.indexOf('·');
+  let date = '', docRef = '';
+  if(sepIdx !== -1){
+    date = secondLine.slice(0, sepIdx).trim();
+    docRef = secondLine.slice(sepIdx + 1).trim();
+  } else {
+    const parts = secondLine.split(/\s+/);
+    date = parts[0] || '';
+    docRef = secondLine.slice(date.length).trim();
+  }
+
+  const claimedFunction = lines.length >= 3 ? lines.slice(2).join(' ').trim() : null;
+
+  return { code, date, docRef, claimedFunction };
+}
+
+document.getElementById('verify-paste').addEventListener('input', (e)=>{
+  const parsed = parseSignedBlock(e.target.value);
+  const note = document.getElementById('verify-parse-note');
+  if(!parsed){
+    note.classList.add('hidden');
+    return;
+  }
+  document.getElementById('verify-code').value = parsed.code;
+  if(parsed.date) document.getElementById('verify-date').value = parsed.date;
+  document.getElementById('verify-docref').value = parsed.docRef;
+
+  note.classList.remove('hidden');
+  note.textContent = parsed.claimedFunction
+    ? `Parsed — claims to be: ${parsed.claimedFunction}`
+    : 'Parsed code, date and document reference.';
+});
+
 // ---- Verify ----
 document.getElementById('btn-verify').addEventListener('click', async ()=>{
   const code = document.getElementById('verify-code').value.trim().toUpperCase();
@@ -532,9 +617,19 @@ document.getElementById('btn-verify').addEventListener('click', async ()=>{
     }
 
     if(match){
+      const pasteText = document.getElementById('verify-paste').value;
+      const parsed = pasteText ? parseSignedBlock(pasteText) : null;
+      let claimNote = '';
+      if(parsed && parsed.claimedFunction){
+        const same = parsed.claimedFunction.trim().toLowerCase() === match.trim().toLowerCase();
+        claimNote = same
+          ? '<p class="note ok">Matches the function claimed in the pasted block.</p>'
+          : `<p class="note warn">The pasted block claims “${parsed.claimedFunction}”, but the code actually belongs to “${match}”.</p>`;
+      }
       showResult('verify-result',
         `<p class="verify-outcome match">Signed by: ${match}</p>
-         <p class="note info">${date} · ${docRef}</p>`);
+         <p class="note info">${date} · ${docRef}</p>
+         ${claimNote}`);
     } else {
       showResult('verify-result',
         `<p class="verify-outcome no-match">No match found.</p>
