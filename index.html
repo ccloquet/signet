@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F3EC;
+    --paper-dim:#EFEBE1;
+    --ink:#23272B;
+    --ink-soft:#5B5F5A;
+    --rule:#D8D2C2;
+    --seal:#8B2E2E;
+    --seal-dim:#B85C50;
+    --moss:#5C6B4F;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Lora',serif;
+  }
+  body{
+    padding:56px 20px 80px;
+    display:flex;
+    justify-content:center;
+  }
+  .page{
+    width:100%;
+    max-width:620px;
+  }
+  header.masthead{
+    border-bottom:1px solid var(--rule);
+    padding-bottom:22px;
+    margin-bottom:8px;
+  }
+  header.masthead h1{
+    font-size:2.1rem;
+    font-weight:600;
+    margin:0 0 6px;
+    letter-spacing:0.01em;
+  }
+  header.masthead p{
+    margin:0;
+    color:var(--ink-soft);
+    font-size:0.98rem;
+    line-height:1.5;
+    max-width:46ch;
+  }
+  nav.tabs{
+    display:flex;
+    margin:34px 0 30px;
+    border-bottom:1px solid var(--rule);
+  }
+  nav.tabs button{
+    font-family:'Lora',serif;
+    font-size:0.95rem;
+    background:none;
+    border:none;
+    padding:10px 18px 12px 0;
+    margin-right:22px;
+    color:var(--ink-soft);
+    cursor:pointer;
+    position:relative;
+    top:1px;
+  }
+  nav.tabs button.active{
+    color:var(--ink);
+    font-weight:600;
+    border-bottom:2px solid var(--seal);
+  }
+  section.panel{
+    display:none;
+  }
+  section.panel.active{
+    display:block;
+    animation:fade 0.25s ease;
+  }
+  @keyframes fade{ from{opacity:0; transform:translateY(3px);} to{opacity:1; transform:translateY(0);} }
+
+  .panel p.lede{
+    color:var(--ink-soft);
+    font-size:0.93rem;
+    line-height:1.55;
+    margin:0 0 26px;
+    max-width:48ch;
+  }
+  .field{
+    margin-bottom:20px;
+  }
+  .field label{
+    display:block;
+    font-size:0.86rem;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  .field input{
+    width:100%;
+    font-size:1rem;
+    padding:9px 2px;
+    border:none;
+    border-bottom:1px solid var(--rule);
+    background:transparent;
+    color:var(--ink);
+    font-family:'Lora',serif;
+  }
+  .field input.mono{
+    font-family:'IBM Plex Mono',monospace;
+    letter-spacing:0.02em;
+  }
+  .field input:focus{
+    outline:none;
+    border-bottom:1px solid var(--ink);
+  }
+  .row2{
+    display:flex;
+    gap:24px;
+  }
+  .row2 .field{ flex:1; }
+
+  button.action{
+    font-family:'Lora',serif;
+    font-size:0.95rem;
+    font-weight:600;
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    padding:12px 22px;
+    cursor:pointer;
+    margin-top:6px;
+  }
+  button.action:hover{ background:#000; }
+  button.action:disabled{ background:#9A9A92; cursor:default; }
+
+  button.copy-btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.78rem;
+    background:transparent;
+    color:var(--ink-soft);
+    border:1px solid var(--rule);
+    padding:6px 12px;
+    cursor:pointer;
+    margin-top:10px;
+  }
+  button.copy-btn:hover{ border-color:var(--ink); color:var(--ink); }
+  button.copy-btn.copied{ border-color:var(--moss); color:var(--moss); }
+
+  .result{
+    margin-top:30px;
+    padding-top:24px;
+    border-top:1px solid var(--rule);
+    min-height:20px;
+  }
+  .result.hidden{ display:none; }
+
+  .code-display{
+    display:flex;
+    align-items:baseline;
+    gap:18px;
+    margin:14px 0 16px;
+  }
+  .code-display .code{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:2.4rem;
+    font-weight:600;
+    letter-spacing:0.12em;
+    color:var(--seal);
+  }
+
+  .copy-block{
+    background:var(--paper-dim);
+    border-left:3px solid var(--seal);
+    padding:14px 16px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.95rem;
+    line-height:1.7;
+    white-space:pre-wrap;
+    word-break:break-word;
+  }
+
+  .registry-snippet{
+    background:var(--paper-dim);
+    border-left:3px solid var(--ink-soft);
+    padding:14px 16px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.82rem;
+    line-height:1.6;
+    white-space:pre-wrap;
+    word-break:break-all;
+    margin-top:12px;
+  }
+
+  .meta-line{
+    font-size:0.86rem;
+    color:var(--ink-soft);
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .note{
+    font-size:0.88rem;
+    line-height:1.5;
+    margin-top:12px;
+  }
+  .note.warn{ color:var(--seal); }
+  .note.ok{ color:var(--moss); }
+  .note.info{ color:var(--ink-soft); }
+
+  .verify-outcome{
+    font-size:1.15rem;
+    font-weight:600;
+    margin-bottom:6px;
+  }
+  .verify-outcome.match{ color:var(--moss); }
+  .verify-outcome.no-match{ color:var(--seal); }
+
+  footer.disclosure{
+    margin-top:56px;
+    padding-top:18px;
+    border-top:1px solid var(--rule);
+    font-size:0.8rem;
+    color:var(--ink-soft);
+    line-height:1.6;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <h1>Signet</h1>
+    <p>A personal mark for documents you've read. Register once, then produce a short code that ties you, and only you, to a document and date &mdash; without ever exposing your password.</p>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-panel="register">Register</button>
+    <button class="tab-btn" data-panel="sign">Sign a document</button>
+    <button class="tab-btn" data-panel="verify">Verify a code</button>
+  </nav>
+
+  <!-- REGISTER -->
+  <section class="panel active" id="panel-register">
+    <p class="lede">Register your function and choose a password. Only a one-way derivative of your password is produced &mdash; never the password itself. Do this once, or again if you want to change your password.</p>
+
+    <div class="field">
+      <label for="reg-function">Function</label>
+      <input id="reg-function" type="text" placeholder="e.g. J.DUPONT &mdash; SITE MANAGER" />
+    </div>
+    <div class="field">
+      <label for="reg-password">Password</label>
+      <input id="reg-password" type="password" placeholder="Choose a personal password" />
+    </div>
+    <div class="field">
+      <label for="reg-password2">Confirm password</label>
+      <input id="reg-password2" type="password" placeholder="Repeat the password" />
+    </div>
+
+    <button class="action" id="btn-register">Register this function</button>
+
+    <div class="result hidden" id="reg-result"></div>
+  </section>
+
+  <!-- SIGN -->
+  <section class="panel" id="panel-sign">
+    <p class="lede">Enter your function and password, the date, and a short reference for the document (its filename, an ID, or a distinctive phrase). You'll get a 6-character code plus a copy-ready block to put on the document.</p>
+
+    <div class="field">
+      <label for="sign-function">Function</label>
+      <input id="sign-function" type="text" placeholder="e.g. J.DUPONT &mdash; SITE MANAGER" />
+    </div>
+    <div class="field">
+      <label for="sign-password">Password</label>
+      <input id="sign-password" type="password" placeholder="Your password" />
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="sign-date">Date</label>
+        <input id="sign-date" type="date" class="mono" />
+      </div>
+      <div class="field">
+        <label for="sign-docref">Document reference</label>
+        <input id="sign-docref" type="text" class="mono" placeholder="e.g. contract-v3.pdf" />
+      </div>
+    </div>
+
+    <button class="action" id="btn-sign">Generate code</button>
+
+    <div class="result hidden" id="sign-result"></div>
+  </section>
+
+  <!-- VERIFY -->
+  <section class="panel" id="panel-verify">
+    <p class="lede">Enter the code found on a document, along with its date and reference. Signet will check it against every registered function and tell you who it belongs to.</p>
+
+    <div class="field">
+      <label for="verify-code">Code</label>
+      <input id="verify-code" type="text" class="mono" placeholder="e.g. 4K9QRZ" maxlength="6" style="text-transform:uppercase" />
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="verify-date">Date</label>
+        <input id="verify-date" type="date" class="mono" />
+      </div>
+      <div class="field">
+        <label for="verify-docref">Document reference</label>
+        <input id="verify-docref" type="text" class="mono" placeholder="e.g. contract-v3.pdf" />
+      </div>
+    </div>
+
+    <button class="action" id="btn-verify">Check code</button>
+
+    <div class="result hidden" id="verify-result"></div>
+  </section>
+
+  <footer class="disclosure">
+    Registered functions are looked up from <code>registry.json</code>, a plain file shipped with this site, plus anything registered on this device. Passwords are never stored or transmitted &mdash; only a one-way derivative used to check codes. See the project's README for how to add new people to the shared registry.
+  </footer>
+
+</div>
+
+<script>
+const CODE_SPACE = Math.pow(36,6); // 2,176,782,336
+const PBKDF2_ITERATIONS = 150000;
+const LOCAL_KEY = 'signet-local-registry';
+
+function todayStr(){
+  const d = new Date();
+  return d.toISOString().slice(0,10);
+}
+document.getElementById('sign-date').value = todayStr();
+document.getElementById('verify-date').value = todayStr();
+
+function slug(fn){
+  return fn.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+}
+
+function toHex(buf){
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function fromHex(hex){
+  const bytes = new Uint8Array(hex.length/2);
+  for(let i=0;i<bytes.length;i++) bytes[i] = parseInt(hex.substr(i*2,2),16);
+  return bytes;
+}
+
+async function deriveKey(password, functionName){
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), {name:'PBKDF2'}, false, ['deriveBits']);
+  const salt = enc.encode('signet-salt::' + slug(functionName));
+  const bits = await crypto.subtle.deriveBits(
+    {name:'PBKDF2', salt, iterations: PBKDF2_ITERATIONS, hash:'SHA-256'},
+    keyMaterial,
+    256
+  );
+  return new Uint8Array(bits);
+}
+
+async function computeCode(keyBytes, date, docRef){
+  const key = await crypto.subtle.importKey('raw', keyBytes, {name:'HMAC', hash:'SHA-256'}, false, ['sign']);
+  const message = new TextEncoder().encode(date + '|' + docRef.trim());
+  const sig = await crypto.subtle.sign('HMAC', key, message);
+  const view = new DataView(sig);
+  const num = view.getUint32(0, false) % CODE_SPACE;
+  return num.toString(36).toUpperCase().padStart(6,'0');
+}
+
+// ---- Registry: registry.json (shared, shipped with the site) + localStorage (this device) ----
+function getLocalRegistry(){
+  try{
+    return JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}');
+  }catch(e){ return {}; }
+}
+function setLocalEntry(slugKey, entry){
+  const reg = getLocalRegistry();
+  reg[slugKey] = entry;
+  localStorage.setItem(LOCAL_KEY, JSON.stringify(reg));
+}
+
+async function getFullRegistry(){
+  let shared = {};
+  try{
+    const res = await fetch('registry.json', {cache:'no-store'});
+    if(res.ok) shared = await res.json();
+  }catch(e){ /* no registry.json reachable (e.g. opened as a local file) */ }
+  const local = getLocalRegistry();
+  return Object.assign({}, shared, local); // local entries win on this device
+}
+
+// ---- Tabs ----
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-'+btn.dataset.panel).classList.add('active');
+  });
+});
+
+function showResult(elId, html){
+  const el = document.getElementById(elId);
+  el.classList.remove('hidden');
+  el.innerHTML = html;
+}
+
+function attachCopyHandler(btnId, text){
+  const btn = document.getElementById(btnId);
+  if(!btn) return;
+  btn.addEventListener('click', async ()=>{
+    try{
+      await navigator.clipboard.writeText(text);
+      btn.textContent = 'Copied';
+      btn.classList.add('copied');
+      setTimeout(()=>{ btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+    }catch(e){
+      btn.textContent = 'Could not copy';
+    }
+  });
+}
+
+// ---- Register ----
+document.getElementById('btn-register').addEventListener('click', async ()=>{
+  const fn = document.getElementById('reg-function').value.trim();
+  const pw = document.getElementById('reg-password').value;
+  const pw2 = document.getElementById('reg-password2').value;
+  const btn = document.getElementById('btn-register');
+
+  if(!fn || !pw){
+    showResult('reg-result', '<p class="note warn">Enter a function and a password.</p>');
+    return;
+  }
+  if(pw !== pw2){
+    showResult('reg-result', '<p class="note warn">The two passwords don\'t match.</p>');
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Deriving key…';
+  try{
+    const key = await deriveKey(pw, fn);
+    const slugKey = slug(fn);
+    const entry = { name: fn, key: toHex(key) };
+    setLocalEntry(slugKey, entry);
+
+    const snippet = `"${slugKey}": ${JSON.stringify(entry)}`;
+
+    showResult('reg-result',
+      `<p class="note ok">Registered on this device. Your password was not stored.</p>
+       <p class="note info">For other people to verify your codes, this entry needs to be added to <code>registry.json</code> in the deployed site (an admin commits it once):</p>
+       <div class="registry-snippet" id="reg-snippet">${snippet}</div>
+       <button class="copy-btn" id="copy-reg-snippet">Copy</button>`);
+    attachCopyHandler('copy-reg-snippet', snippet);
+  }catch(err){
+    showResult('reg-result', '<p class="note warn">Something went wrong: '+err.message+'</p>');
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Register this function';
+  }
+});
+
+// ---- Sign ----
+document.getElementById('btn-sign').addEventListener('click', async ()=>{
+  const fn = document.getElementById('sign-function').value.trim();
+  const pw = document.getElementById('sign-password').value;
+  const date = document.getElementById('sign-date').value;
+  const docRef = document.getElementById('sign-docref').value.trim();
+  const btn = document.getElementById('btn-sign');
+
+  if(!fn || !pw || !date || !docRef){
+    showResult('sign-result', '<p class="note warn">Fill in function, password, date and a document reference.</p>');
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Computing…';
+  try{
+    const key = await deriveKey(pw, fn);
+    const code = await computeCode(key, date, docRef);
+
+    let checkNote = '<p class="note info">This function hasn\'t been registered on this device yet — register it first so others can verify your codes.</p>';
+    try{
+      const registry = await getFullRegistry();
+      const entry = registry[slug(fn)];
+      if(entry){
+        checkNote = entry.key === toHex(key)
+          ? '<p class="note ok">Matches the registered key.</p>'
+          : '<p class="note warn">This does not match the key registered for “'+fn+'”. Check your function name and password.</p>';
+      }
+    }catch(e){ /* ignore lookup errors, still show the code */ }
+
+    const copyText = `${code}\n${date} · ${docRef}\n${fn}`;
+
+    showResult('sign-result',
+      `<div class="code-display"><span class="code">${code}</span></div>
+       <div class="copy-block" id="sign-copy-block">${code}\n${date} · ${docRef}\n${fn}</div>
+       <button class="copy-btn" id="copy-sign-block">Copy</button>
+       ${checkNote}
+       <p class="note info">Write or paste this block on the document.</p>`);
+    attachCopyHandler('copy-sign-block', copyText);
+  }catch(err){
+    showResult('sign-result', '<p class="note warn">Something went wrong: '+err.message+'</p>');
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Generate code';
+  }
+});
+
+// ---- Verify ----
+document.getElementById('btn-verify').addEventListener('click', async ()=>{
+  const code = document.getElementById('verify-code').value.trim().toUpperCase();
+  const date = document.getElementById('verify-date').value;
+  const docRef = document.getElementById('verify-docref').value.trim();
+  const btn = document.getElementById('btn-verify');
+
+  if(!code || !date || !docRef){
+    showResult('verify-result', '<p class="note warn">Fill in the code, date and document reference.</p>');
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+  try{
+    const registry = await getFullRegistry();
+    let match = null;
+    for(const slugKey of Object.keys(registry)){
+      const entry = registry[slugKey];
+      try{
+        const expected = await computeCode(fromHex(entry.key), date, docRef);
+        if(expected === code){
+          match = entry.name;
+          break;
+        }
+      }catch(e){ /* skip malformed entries */ }
+    }
+
+    if(match){
+      showResult('verify-result',
+        `<p class="verify-outcome match">Signed by: ${match}</p>
+         <p class="note info">${date} · ${docRef}</p>`);
+    } else {
+      showResult('verify-result',
+        `<p class="verify-outcome no-match">No match found.</p>
+         <p class="note info">Either the code, date or document reference doesn't match any registered signer, or that person hasn't been added to the registry yet.</p>`);
+    }
+  }catch(err){
+    showResult('verify-result', '<p class="note warn">Something went wrong: '+err.message+'</p>');
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Check code';
+  }
+});
+</script>
+</body>
+</html>
